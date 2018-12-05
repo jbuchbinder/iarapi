@@ -1,4 +1,4 @@
-package iamresponding
+package iarapi
 
 import (
 	"encoding/json"

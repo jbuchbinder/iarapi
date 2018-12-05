@@ -1,4 +1,4 @@
-package iamresponding
+package iarapi
 
 import (
 	"testing"
@@ -43,14 +43,12 @@ func Test_API(t *testing.T) {
 	currentCase := Dm[len(Dm)-1]
 	t.Logf("CURRENT ADDRESS : %s", currentCase.Address)
 
-	/*
-		{
-			data, err := m.GetIncidentInfo(Dm[0].ID, m.apiToken)
-			if err != nil {
-				t.Error(err)
-				t.Fail()
-			}
-			t.Logf("GetIncidentInfo: %#v", data)
+	{
+		data, err := m.GetIncidentInfo(Dm[0].ID, m.apiToken)
+		if err != nil {
+			t.Error(err)
+			t.Fail()
 		}
-	*/
+		t.Logf("GetIncidentInfo: %#v", data)
+	}
 }
