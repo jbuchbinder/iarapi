@@ -149,7 +149,12 @@ func (c *IamRespondingAPI) GetNowRespondingWithSort() ([]NowResponding, error) {
 		return nr, err
 	}
 
-	nr = d.NowResponding
+	for _, x := range d.NowResponding {
+		if strings.TrimSpace(x.MemberFName) != "" {
+			nr = append(nr, x)
+		}
+	}
+	//nr = d.NowResponding
 
 	log.Printf("%#v", nr)
 
@@ -192,14 +197,20 @@ func (c *IamRespondingAPI) GetOnScheduleWithSort() ([]OnSchedule, error) {
 	}
 
 	var d GetOnScheduleWithSortData
-	err = xml.Unmarshal([]byte(b.Body()), &d)
+	err = xml.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "\n    ", "")), &d)
 	if err != nil {
 		return data, err
 	}
 
-	data = d.OnSchedule
+	for _, x := range d.OnSchedule {
+		if strings.TrimSpace(x.MemberName) != "" {
+			data = append(data, x)
+		}
+	}
 
-	//log.Printf("%s / %#v", b.Body(), data)
+	//data = d.OnSchedule
+
+	log.Printf("%s / %#v", b.Body(), data)
 
 	return data, nil
 }
@@ -241,7 +252,7 @@ func (c *IamRespondingAPI) ListWithParser() ([]DispatchMessage, error) {
 	}
 
 	var d ListWithParserData
-	err = xml.Unmarshal([]byte(b.Body()), &d)
+	err = xml.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "\n    ", "")), &d)
 	if err != nil {
 		return data, err
 	}
@@ -305,7 +316,7 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64, token string) (Incide
 	log.Printf("GetIncidentInfo: Body: [[ %s ]]", b.Body())
 
 	var d GetIncidentInfoResponse
-	err = json.Unmarshal([]byte(b.Body()), &d)
+	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "\n    ", "")), &d)
 	if err != nil {
 		return IncidentInfoData{}, err
 	}

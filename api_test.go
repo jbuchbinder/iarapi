@@ -44,7 +44,7 @@ func Test_API(t *testing.T) {
 	t.Logf("CURRENT ADDRESS : %s", currentCase.Address)
 
 	{
-		data, err := m.GetIncidentInfo(Dm[0].ID, m.apiToken)
+		data, err := m.GetIncidentInfo(Dm[len(Dm)-1].ID, m.apiToken)
 		if err != nil {
 			t.Error(err)
 			t.Fail()
