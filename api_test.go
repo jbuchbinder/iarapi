@@ -43,12 +43,35 @@ func Test_API(t *testing.T) {
 	currentCase := Dm[len(Dm)-1]
 	t.Logf("CURRENT ADDRESS : %s", currentCase.Address)
 
+	var E []Event
 	{
-		data, err := m.GetIncidentInfo(Dm[len(Dm)-1].ID, m.apiToken)
+		E, err = m.GetRemindersByMember()
 		if err != nil {
 			t.Error(err)
 			t.Fail()
 		}
-		t.Logf("GetIncidentInfo: %#v", data)
+		t.Logf("GetRemindersByMember: %#v", E)
 	}
+
+	{
+		i, err := m.GetLatestIncidents()
+		if err != nil {
+			t.Error(err)
+			t.Fail()
+		}
+		t.Logf("GetLatestIncidents: %#v", i)
+	}
+
+	t.Logf("%#v", m)
+
+	/*
+		{
+			data, err := m.GetIncidentInfo(Dm[len(Dm)-1].ID, m.apiToken)
+			if err != nil {
+				t.Error(err)
+				t.Fail()
+			}
+			t.Logf("GetIncidentInfo: %#v", data)
+		}
+	*/
 }

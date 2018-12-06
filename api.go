@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"log"
 	"net/url"
 	"regexp"
@@ -18,16 +19,37 @@ import (
 )
 
 type IamRespondingAPI struct {
-	browserObject *browser.Browser
-	initialized   bool
-	orgCrypted    string
-	member        int64
-	memberCrypted string
-	adminCrypted  string
-	agency        int64
-	agencyCrypted string
-	apiToken      string
+	browserObject   *browser.Browser
+	initialized     bool
+	orgCrypted      string
+	member          int64
+	memberCrypted   string
+	subscriber      int64
+	adminCrypted    string
+	agency          int64
+	agencyCrypted   string
+	apiToken        string
+	clientIarAPIURL string
+	tokenForAPI     string
 }
+
+type CustomTime struct {
+	time.Time
+}
+
+func (c *CustomTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	const shortForm = "2006-01-02T15:04:05.999999999" // Mon Jan 2 15:04:05 -0700 MST 2006
+	var v string
+	d.DecodeElement(&v, &start)
+	parse, err := time.Parse(shortForm, v)
+	if err != nil {
+		return err
+	}
+	*c = CustomTime{parse}
+	return nil
+}
+
+// 2018-12-05T16:08:41.28
 
 func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 	b := surf.NewBrowser()
@@ -79,14 +101,39 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 	b.Dom().Find("INPUT#hdnIsAdminCrypted").Each(func(_ int, s *goquery.Selection) {
 		c.adminCrypted, _ = s.Attr("value")
 	})
-
-	log.Printf("org = %s, member = %s, agency = %s, admin = %s", c.orgCrypted, c.memberCrypted, c.agencyCrypted, c.adminCrypted)
+	b.Dom().Find("INPUT#TokenForApi").Each(func(_ int, s *goquery.Selection) {
+		c.tokenForAPI, _ = s.Attr("value")
+	})
+	b.Dom().Find("INPUT#ClientIarApiUrl").Each(func(_ int, s *goquery.Selection) {
+		c.clientIarAPIURL, _ = s.Attr("value")
+	})
 
 	// Get API token
 	err = b.Open("https://iamresponding.com/v3/agency/incidentsdashboard.aspx")
 	if err != nil {
 		return err
 	}
+
+	b.Dom().Find("INPUT#TokenForApi").Each(func(_ int, s *goquery.Selection) {
+		c.tokenForAPI, _ = s.Attr("value")
+	})
+	b.Dom().Find("INPUT#memberID").Each(func(_ int, s *goquery.Selection) {
+		x, _ := s.Attr("value")
+		c.member, _ = strconv.ParseInt(x, 10, 64)
+	})
+	b.Dom().Find("INPUT#subscriberID").Each(func(_ int, s *goquery.Selection) {
+		x, _ := s.Attr("value")
+		c.subscriber, _ = strconv.ParseInt(x, 10, 64)
+	})
+	b.Dom().Find("INPUT#hdnAgency").Each(func(_ int, s *goquery.Selection) {
+		x, _ := s.Attr("value")
+		c.agency, _ = strconv.ParseInt(x, 10, 64)
+	})
+	b.Dom().Find("INPUT#ClientIarApiUrl").Each(func(_ int, s *goquery.Selection) {
+		c.clientIarAPIURL, _ = s.Attr("value")
+	})
+
+	log.Printf("org = %s, member = %s, agency = %s, admin = %s, tokenForApi = %s, clientIarApiUrl = %s", c.orgCrypted, c.memberCrypted, c.agencyCrypted, c.adminCrypted, c.tokenForAPI, c.clientIarAPIURL)
 
 	pattern, err := regexp.Compile(`var Credentials={"Agency":(\d+),"Member":(\d+),"Type":(\d),"Token":"([^\"]+)",`) //"AgencyType":"([^\"]+)","SessionToken":"([A-Za-z=]+)",`)
 	if err != nil {
@@ -277,19 +324,19 @@ type GetIncidentInfoResponse struct {
 }
 
 type IncidentInfoData struct {
-	IncidentInfoData       string    `json:"__type"`
-	Id                     int64     `json:"Id"`
-	ArrivedOn              time.Time `json:"ArrivedOn"`
-	SubscriberId           int64     `json:"SubscriberId"`
-	Subject                string    `json:"Subject"`
-	Address                string    `json:"Address"`
-	OverrideBounds         bool      `json:"OverrideBounds"`
-	VerifiedAddressStatus  int       `json:"VerifiedAddressStatus"`
-	VerifiedAddressId      int       `json:"VerifiedAddressId"`
-	VerifiedAddressAddedBy string    `json:"VerifiedAddressAddedBy"`
-	UpdatedOn              string    `json:"UpdatedOn"`
-	UpdatedOnToShow        string    `json:"UpdatedOnToShow"`
-	LongDirection          string    `json:"longDirection"`
+	IncidentInfoData       string `json:"__type"`
+	Id                     int64  `json:"Id"`
+	ArrivedOn              string `json:"ArrivedOn"`
+	SubscriberId           int64  `json:"SubscriberId"`
+	Subject                string `json:"Subject"`
+	Address                string `json:"Address"`
+	OverrideBounds         bool   `json:"OverrideBounds"`
+	VerifiedAddressStatus  int    `json:"VerifiedAddressStatus"`
+	VerifiedAddressId      int    `json:"VerifiedAddressId"`
+	VerifiedAddressAddedBy string `json:"VerifiedAddressAddedBy"`
+	UpdatedOn              string `json:"UpdatedOn"`
+	UpdatedOnToShow        string `json:"UpdatedOnToShow"`
+	LongDirection          string `json:"longDirection"`
 }
 
 func (c *IamRespondingAPI) GetIncidentInfo(incident int64, token string) (IncidentInfoData, error) {
@@ -322,4 +369,83 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64, token string) (Incide
 	}
 
 	return d.Data[0], nil
+}
+
+func (c *IamRespondingAPI) GetLatestIncidents() ([]IncidentInfoData, error) {
+	if !c.initialized {
+		return []IncidentInfoData{}, errors.New("Not initialized")
+	}
+
+	b := c.browserObject
+
+	params := map[string]interface{}{
+		"memberID": c.member,
+		"token":    c.tokenForAPI,
+	}
+	post, err := json.Marshal(params)
+	if err != nil {
+		return []IncidentInfoData{}, err
+	}
+
+	err = b.Post("https://iamresponding.com/v3/agency/IncidentsDashboard.aspx/GetLatestIncidents?buster=%27+new%20Date().getTime();", "application/json", strings.NewReader(string(post)))
+	if err != nil {
+		return []IncidentInfoData{}, err
+	}
+
+	log.Printf("GetLatestIncidents: post: %s, Body: [[ %s ]]", post, strings.ReplaceAll(b.Body(), "&#34;", `"`))
+
+	var d GetIncidentInfoResponse
+	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "&#34;", `"`)), &d)
+	if err != nil {
+		return []IncidentInfoData{}, err
+	}
+
+	return d.Data, nil
+}
+
+// https://iamresponding.com/v3/AgencyServices.asmx/GetRemindersByMember
+// subsString: 536872444
+// days: 7
+
+type GetRemindersByMemberResponse struct {
+	XMLName xml.Name `xml:"newdataset"`
+	Data    []Event  `xml:"event"`
+}
+
+type Event struct {
+	XMLName            xml.Name   `xml:"event"`
+	EventID            int64      `xml:"eventid"`
+	Subject            string     `xml:"subject"`
+	EventStart         CustomTime `xml:"eventstart"`
+	EventEnd           CustomTime `xml:"eventend"`
+	EventsRecurrenceID int64      `xml:"eventsrecurrenceid"`
+	SubscriberID       int64      `xml:"subscriberid"`
+	//<RecurrenceRule></RecurrenceRule>
+}
+
+func (c *IamRespondingAPI) GetRemindersByMember() ([]Event, error) {
+	if !c.initialized {
+		return []Event{}, errors.New("Not initialized")
+	}
+
+	b := c.browserObject
+
+	log.Printf("GetRemindersByMember()")
+	v := url.Values{}
+	v.Set("subsString", fmt.Sprintf("%d", c.agency))
+	v.Set("days", "7")
+	err := b.PostForm("https://iamresponding.com/v3/AgencyServices.asmx/GetRemindersByMember", v)
+	if err != nil {
+		return []Event{}, err
+	}
+
+	log.Printf("GetRemindersByMember: subsString: %d: Body: [[ %s ]]", c.agency, b.Body())
+
+	var d GetRemindersByMemberResponse
+	err = xml.Unmarshal([]byte(b.Body()), &d)
+	if err != nil {
+		return []Event{}, err
+	}
+
+	return d.Data, nil
 }
