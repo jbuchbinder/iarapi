@@ -328,7 +328,9 @@ type IncidentInfoData struct {
 	Id                     int64  `json:"Id"`
 	ArrivedOn              string `json:"ArrivedOn"`
 	SubscriberId           int64  `json:"SubscriberId"`
-	Subject                string `json:"Subject"`
+	Body                   string `json:"Body,omitempty"`
+	Subject                string `json:"Subject,omitempty"`
+	MessageSubject         string `json:"MessageSubject,omitempty"`
 	Address                string `json:"Address"`
 	OverrideBounds         bool   `json:"OverrideBounds"`
 	VerifiedAddressStatus  int    `json:"VerifiedAddressStatus"`
@@ -339,7 +341,7 @@ type IncidentInfoData struct {
 	LongDirection          string `json:"longDirection"`
 }
 
-func (c *IamRespondingAPI) GetIncidentInfo(incident int64, token string) (IncidentInfoData, error) {
+func (c *IamRespondingAPI) GetIncidentInfo(incident int64) (IncidentInfoData, error) {
 	if !c.initialized {
 		return IncidentInfoData{}, errors.New("Not initialized")
 	}
@@ -347,23 +349,23 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64, token string) (Incide
 	b := c.browserObject
 
 	params := map[string]interface{}{
-		"messageId": incident,
-		"token":     token,
+		"messageID": incident,
+		"token":     c.tokenForAPI,
 	}
 	post, err := json.Marshal(params)
 	if err != nil {
 		return IncidentInfoData{}, err
 	}
 
-	err = b.Post("https://iamresponding.com/v3/IncidentsDashboard.asmx/GetIncidentInfo", "application/json", strings.NewReader(string(post)))
+	err = b.Post("https://iamresponding.com/v3/agency/IncidentsDashboard.aspx/GetIncidentInfo", "application/json", strings.NewReader(string(post)))
 	if err != nil {
 		return IncidentInfoData{}, err
 	}
 
-	log.Printf("GetIncidentInfo: Body: [[ %s ]]", b.Body())
+	log.Printf("GetIncidentInfo: Body: [[ %s ]]", strings.ReplaceAll(b.Body(), "&#34;", `"`))
 
 	var d GetIncidentInfoResponse
-	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "\n    ", "")), &d)
+	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "&#34;", `"`)), &d)
 	if err != nil {
 		return IncidentInfoData{}, err
 	}
