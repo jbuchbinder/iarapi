@@ -19,6 +19,8 @@ import (
 )
 
 type IamRespondingAPI struct {
+	Debug bool
+
 	browserObject   *browser.Browser
 	initialized     bool
 	orgCrypted      string
@@ -133,7 +135,9 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 		c.clientIarAPIURL, _ = s.Attr("value")
 	})
 
-	log.Printf("org = %s, member = %s, agency = %s, admin = %s, tokenForApi = %s, clientIarApiUrl = %s", c.orgCrypted, c.memberCrypted, c.agencyCrypted, c.adminCrypted, c.tokenForAPI, c.clientIarAPIURL)
+	if c.Debug {
+		log.Printf("org = %s, member = %s, agency = %s, admin = %s, tokenForApi = %s, clientIarApiUrl = %s", c.orgCrypted, c.memberCrypted, c.agencyCrypted, c.adminCrypted, c.tokenForAPI, c.clientIarAPIURL)
+	}
 
 	pattern, err := regexp.Compile(`var Credentials={"Agency":(\d+),"Member":(\d+),"Type":(\d),"Token":"([^\"]+)",`) //"AgencyType":"([^\"]+)","SessionToken":"([A-Za-z=]+)",`)
 	if err != nil {
@@ -143,7 +147,9 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 	if len(groups) < 5 {
 		return errors.New("Did not find API token")
 	}
-	log.Printf("%#v", groups)
+	if c.Debug {
+		log.Printf("%#v", groups)
+	}
 	c.agency, _ = strconv.ParseInt(groups[1], 10, 64)
 	c.member, _ = strconv.ParseInt(groups[2], 10, 64)
 	c.apiToken = groups[4]
@@ -203,7 +209,9 @@ func (c *IamRespondingAPI) GetNowRespondingWithSort() ([]NowResponding, error) {
 	}
 	//nr = d.NowResponding
 
-	log.Printf("%#v", nr)
+	if c.Debug {
+		log.Printf("%#v", nr)
+	}
 
 	return nr, nil
 }
@@ -257,7 +265,9 @@ func (c *IamRespondingAPI) GetOnScheduleWithSort() ([]OnSchedule, error) {
 
 	//data = d.OnSchedule
 
-	log.Printf("%s / %#v", b.Body(), data)
+	if c.Debug {
+		log.Printf("%s / %#v", b.Body(), data)
+	}
 
 	return data, nil
 }
@@ -312,7 +322,9 @@ func (c *IamRespondingAPI) ListWithParser() ([]DispatchMessage, error) {
 
 	data = d.DispatchMessages
 
-	log.Printf("%s / %#v", b.Body(), data)
+	if c.Debug {
+		log.Printf("%s / %#v", b.Body(), data)
+	}
 
 	return data, nil
 }
@@ -362,7 +374,9 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64) (IncidentInfoData, er
 		return IncidentInfoData{}, err
 	}
 
-	log.Printf("GetIncidentInfo: Body: [[ %s ]]", strings.ReplaceAll(b.Body(), "&#34;", `"`))
+	if c.Debug {
+		log.Printf("GetIncidentInfo: Body: [[ %s ]]", strings.ReplaceAll(b.Body(), "&#34;", `"`))
+	}
 
 	var d GetIncidentInfoResponse
 	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "&#34;", `"`)), &d)
@@ -394,7 +408,9 @@ func (c *IamRespondingAPI) GetLatestIncidents() ([]IncidentInfoData, error) {
 		return []IncidentInfoData{}, err
 	}
 
-	log.Printf("GetLatestIncidents: post: %s, Body: [[ %s ]]", post, strings.ReplaceAll(b.Body(), "&#34;", `"`))
+	if c.Debug {
+		log.Printf("GetLatestIncidents: post: %s, Body: [[ %s ]]", post, strings.ReplaceAll(b.Body(), "&#34;", `"`))
+	}
 
 	var d GetIncidentInfoResponse
 	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "&#34;", `"`)), &d)
@@ -441,7 +457,9 @@ func (c *IamRespondingAPI) GetRemindersByMember() ([]Event, error) {
 		return []Event{}, err
 	}
 
-	log.Printf("GetRemindersByMember: subsString: %d: Body: [[ %s ]]", c.agency, b.Body())
+	if c.Debug {
+		log.Printf("GetRemindersByMember: subsString: %d: Body: [[ %s ]]", c.agency, b.Body())
+	}
 
 	var d GetRemindersByMemberResponse
 	err = xml.Unmarshal([]byte(b.Body()), &d)
