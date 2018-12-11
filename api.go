@@ -384,6 +384,9 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64) (IncidentInfoData, er
 		return IncidentInfoData{}, err
 	}
 
+	if len(d.Data) == 0 {
+		return IncidentInfoData{}, errors.New("No data for incident")
+	}
 	return d.Data[0], nil
 }
 
