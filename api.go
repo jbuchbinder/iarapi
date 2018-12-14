@@ -18,6 +18,10 @@ import (
 	"github.com/headzoo/surf/browser"
 )
 
+var (
+	ErrIarAuthentication = errors.New("Unable to authenticate to IAR due to incorrect credentials")
+)
+
 type IamRespondingAPI struct {
 	Debug bool
 
@@ -79,6 +83,10 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 	err = b.Post("https://iamresponding.com/v3/Pages/memberlogin.aspx/ValidateLoginInfo", "application/json", strings.NewReader(string(post)))
 	if err != nil {
 		return err
+	}
+	// Catch authentication issues
+	if b.Body() == `{"d":"The log-in information that you have entered is incorrect."}` {
+		return ErrIarAuthentication
 	}
 
 	v := url.Values{}
