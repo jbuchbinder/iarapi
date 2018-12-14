@@ -325,7 +325,9 @@ func (c *IamRespondingAPI) ListWithParser() ([]DispatchMessage, error) {
 	for i, _ := range d.DispatchMessages {
 		d.DispatchMessages[i].MessageBody = strings.Replace(d.DispatchMessages[i].MessageBody, "\n<br />", "", -1)
 		parts := strings.Split(d.DispatchMessages[i].MessageBody, " * ")
-		d.DispatchMessages[i].Address = parts[1]
+		if len(parts) > 1 {
+			d.DispatchMessages[i].Address = parts[1]
+		}
 	}
 
 	data = d.DispatchMessages

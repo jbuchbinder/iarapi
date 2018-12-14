@@ -4,6 +4,15 @@ import (
 	"testing"
 )
 
+func Test_API_Failure_Catch(t *testing.T) {
+	m := IamRespondingAPI{}
+	err := m.Login(TEST_AGENCY, "someuser", "somepassword")
+	t.Error(err)
+	if err == nil {
+		t.Fail()
+	}
+}
+
 func Test_API(t *testing.T) {
 	m := IamRespondingAPI{}
 	err := m.Login(TEST_AGENCY, TEST_USER, TEST_PASS)
