@@ -85,7 +85,10 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 		return err
 	}
 	// Catch authentication issues
-	if b.Body() == `{"d":"The log-in information that you have entered is incorrect."}` {
+	if c.Debug {
+		log.Printf("Login(): %d, %q", strings.Index(b.Body(), "The log-in information that you have entered is incorrect."), b.Body())
+	}
+	if strings.Index(b.Body(), "The log-in information that you have entered is incorrect.") > -1 {
 		return ErrIarAuthentication
 	}
 
@@ -143,6 +146,10 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 		c.clientIarAPIURL, _ = s.Attr("value")
 	})
 
+	if c.memberCrypted == "" || c.adminCrypted == "" {
+		return ErrIarAuthentication
+	}
+
 	if c.Debug {
 		log.Printf("org = %s, member = %s, agency = %s, admin = %s, tokenForApi = %s, clientIarApiUrl = %s", c.orgCrypted, c.memberCrypted, c.agencyCrypted, c.adminCrypted, c.tokenForAPI, c.clientIarAPIURL)
 	}
@@ -158,9 +165,14 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 	if c.Debug {
 		log.Printf("%#v", groups)
 	}
+
 	c.agency, _ = strconv.ParseInt(groups[1], 10, 64)
 	c.member, _ = strconv.ParseInt(groups[2], 10, 64)
 	c.apiToken = groups[4]
+
+	if groups[1] == "" || groups[2] == "" {
+		return ErrIarAuthentication
+	}
 
 	c.initialized = true
 

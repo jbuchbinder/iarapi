@@ -49,8 +49,10 @@ func Test_API(t *testing.T) {
 		t.Logf("ListWithParser: %#v", Dm)
 	}
 
-	currentCase := Dm[len(Dm)-1]
-	t.Logf("CURRENT ADDRESS : %s", currentCase.Address)
+	if len(Dm) > 1 {
+		currentCase := Dm[len(Dm)-1]
+		t.Logf("CURRENT ADDRESS : %s", currentCase.Address)
+	}
 
 	var E []Event
 	{
