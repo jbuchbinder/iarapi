@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/headzoo/surf"
@@ -19,10 +18,14 @@ import (
 )
 
 var (
+	// ErrIarAuthentication is an error thrown when IAR does not authenticate
+	// a query
 	ErrIarAuthentication = errors.New("Unable to authenticate to IAR due to incorrect credentials")
 )
 
+// IamRespondingAPI represents an API access object
 type IamRespondingAPI struct {
+	// Debug sets whether debugging output is enabled
 	Debug bool
 
 	browserObject   *browser.Browser
@@ -38,24 +41,6 @@ type IamRespondingAPI struct {
 	clientIarAPIURL string
 	tokenForAPI     string
 }
-
-type CustomTime struct {
-	time.Time
-}
-
-func (c *CustomTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	const shortForm = "2006-01-02T15:04:05.999999999" // Mon Jan 2 15:04:05 -0700 MST 2006
-	var v string
-	d.DecodeElement(&v, &start)
-	parse, err := time.Parse(shortForm, v)
-	if err != nil {
-		return err
-	}
-	*c = CustomTime{parse}
-	return nil
-}
-
-// 2018-12-05T16:08:41.28
 
 func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 	b := surf.NewBrowser()
@@ -181,19 +166,8 @@ func (c *IamRespondingAPI) Login(agency, user, pass string) error {
 
 // GetNowRespondingWithSort()
 
-type GetNowRespondingWithSortData struct {
+type getNowRespondingWithSortData struct {
 	NowResponding []NowResponding `xml:"nowresponding"`
-}
-
-type NowResponding struct {
-	MemberFName   string `xml:"memberfname"`
-	MemberCat     string `xml:"membercat"`
-	MemberStation string `xml:"memberstation"`
-	CallingTime   string `xml:"callingtime"`
-	ETA           string `xml:"eta"`
-	CallerNo      string `xml:"callerno"`
-	CalledNo      string `xml:"calledno"`
-	UserInput     string `xml:"userinput"`
 }
 
 func (c *IamRespondingAPI) GetNowRespondingWithSort() ([]NowResponding, error) {
@@ -216,7 +190,7 @@ func (c *IamRespondingAPI) GetNowRespondingWithSort() ([]NowResponding, error) {
 		return nr, err
 	}
 
-	var d GetNowRespondingWithSortData
+	var d getNowRespondingWithSortData
 	err = xml.Unmarshal([]byte(b.Body()), &d)
 	if err != nil {
 		return nr, err
@@ -238,17 +212,9 @@ func (c *IamRespondingAPI) GetNowRespondingWithSort() ([]NowResponding, error) {
 
 // GetOnScheduleWithSort()
 
-type GetOnScheduleWithSortData struct {
+type getOnScheduleWithSortData struct {
 	XMLName    xml.Name     `xml:"newdataset"`
 	OnSchedule []OnSchedule `xml:"onschedule"`
-}
-
-type OnSchedule struct {
-	MemberName      string `xml:"membername"`
-	MemberCat       string `xml:"membercat"`
-	InStationOrHome string `xml:"instationorhome"`
-	MemberStation   string `xml:"memberstation"`
-	UntilAt         string `xml:"untilat"`
 }
 
 func (c *IamRespondingAPI) GetOnScheduleWithSort() ([]OnSchedule, error) {
@@ -271,7 +237,7 @@ func (c *IamRespondingAPI) GetOnScheduleWithSort() ([]OnSchedule, error) {
 		return data, err
 	}
 
-	var d GetOnScheduleWithSortData
+	var d getOnScheduleWithSortData
 	err = xml.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "\n    ", "")), &d)
 	if err != nil {
 		return data, err
@@ -294,19 +260,9 @@ func (c *IamRespondingAPI) GetOnScheduleWithSort() ([]OnSchedule, error) {
 
 // ListWithParser()
 
-type ListWithParserData struct {
+type listWithParserData struct {
 	XMLName          xml.Name          `xml:"newdataset"`
 	DispatchMessages []DispatchMessage `xml:"dispatchmessages"`
-}
-
-type DispatchMessage struct {
-	ID                      int64  `xml:"id"`
-	MessageBody             string `xml:"messagebody"`
-	DestinationEmailAddress string `xml:"destinationemailaddress"`
-	MessageSubject          string `xml:"messagesubject"`
-	VerifiedStatus          string `xml:"verifiedstatus"`
-	ArrivedOnString         string `xml:"arrivedonstring"`
-	Address                 string `xml:"-"`
 }
 
 func (c *IamRespondingAPI) ListWithParser() ([]DispatchMessage, error) {
@@ -328,13 +284,13 @@ func (c *IamRespondingAPI) ListWithParser() ([]DispatchMessage, error) {
 		return data, err
 	}
 
-	var d ListWithParserData
+	var d listWithParserData
 	err = xml.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "\n    ", "")), &d)
 	if err != nil {
 		return data, err
 	}
 
-	for i, _ := range d.DispatchMessages {
+	for i := range d.DispatchMessages {
 		d.DispatchMessages[i].MessageBody = strings.Replace(d.DispatchMessages[i].MessageBody, "\n<br />", "", -1)
 		parts := strings.Split(d.DispatchMessages[i].MessageBody, " * ")
 		if len(parts) > 1 {
@@ -351,30 +307,12 @@ func (c *IamRespondingAPI) ListWithParser() ([]DispatchMessage, error) {
 	return data, nil
 }
 
-// GetIncidentInfo()
-
-type GetIncidentInfoResponse struct {
+type getIncidentInfoResponse struct {
 	Data []IncidentInfoData `json:"d"`
 }
 
-type IncidentInfoData struct {
-	IncidentInfoData       string `json:"__type"`
-	Id                     int64  `json:"Id"`
-	ArrivedOn              string `json:"ArrivedOn"`
-	SubscriberId           int64  `json:"SubscriberId"`
-	Body                   string `json:"Body,omitempty"`
-	Subject                string `json:"Subject,omitempty"`
-	MessageSubject         string `json:"MessageSubject,omitempty"`
-	Address                string `json:"Address"`
-	OverrideBounds         bool   `json:"OverrideBounds"`
-	VerifiedAddressStatus  int    `json:"VerifiedAddressStatus"`
-	VerifiedAddressId      int    `json:"VerifiedAddressId"`
-	VerifiedAddressAddedBy string `json:"VerifiedAddressAddedBy"`
-	UpdatedOn              string `json:"UpdatedOn"`
-	UpdatedOnToShow        string `json:"UpdatedOnToShow"`
-	LongDirection          string `json:"longDirection"`
-}
-
+// GetIncidentInfo retrieves atomic incident information based on the unique
+// ID of the incient in question
 func (c *IamRespondingAPI) GetIncidentInfo(incident int64) (IncidentInfoData, error) {
 	if !c.initialized {
 		return IncidentInfoData{}, errors.New("Not initialized")
@@ -400,7 +338,7 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64) (IncidentInfoData, er
 		log.Printf("GetIncidentInfo: Body: [[ %s ]]", strings.ReplaceAll(b.Body(), "&#34;", `"`))
 	}
 
-	var d GetIncidentInfoResponse
+	var d getIncidentInfoResponse
 	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "&#34;", `"`)), &d)
 	if err != nil {
 		return IncidentInfoData{}, err
@@ -412,6 +350,8 @@ func (c *IamRespondingAPI) GetIncidentInfo(incident int64) (IncidentInfoData, er
 	return d.Data[0], nil
 }
 
+// GetLatestIncidents fetches the latest list of IAmResponding emergency
+// incidents
 func (c *IamRespondingAPI) GetLatestIncidents() ([]IncidentInfoData, error) {
 	if !c.initialized {
 		return []IncidentInfoData{}, errors.New("Not initialized")
@@ -437,7 +377,7 @@ func (c *IamRespondingAPI) GetLatestIncidents() ([]IncidentInfoData, error) {
 		log.Printf("GetLatestIncidents: post: %s, Body: [[ %s ]]", post, strings.ReplaceAll(b.Body(), "&#34;", `"`))
 	}
 
-	var d GetIncidentInfoResponse
+	var d getIncidentInfoResponse
 	err = json.Unmarshal([]byte(strings.ReplaceAll(b.Body(), "&#34;", `"`)), &d)
 	if err != nil {
 		return []IncidentInfoData{}, err
@@ -446,24 +386,9 @@ func (c *IamRespondingAPI) GetLatestIncidents() ([]IncidentInfoData, error) {
 	return d.Data, nil
 }
 
-// https://iamresponding.com/v3/AgencyServices.asmx/GetRemindersByMember
-// subsString: 536872444
-// days: 7
-
-type GetRemindersByMemberResponse struct {
+type getRemindersByMemberResponse struct {
 	XMLName xml.Name `xml:"newdataset"`
 	Data    []Event  `xml:"event"`
-}
-
-type Event struct {
-	XMLName            xml.Name   `xml:"event"`
-	EventID            int64      `xml:"eventid"`
-	Subject            string     `xml:"subject"`
-	EventStart         CustomTime `xml:"eventstart"`
-	EventEnd           CustomTime `xml:"eventend"`
-	EventsRecurrenceID int64      `xml:"eventsrecurrenceid"`
-	SubscriberID       int64      `xml:"subscriberid"`
-	//<RecurrenceRule></RecurrenceRule>
 }
 
 func (c *IamRespondingAPI) GetRemindersByMember() ([]Event, error) {
@@ -486,7 +411,7 @@ func (c *IamRespondingAPI) GetRemindersByMember() ([]Event, error) {
 		log.Printf("GetRemindersByMember: subsString: %d: Body: [[ %s ]]", c.agency, b.Body())
 	}
 
-	var d GetRemindersByMemberResponse
+	var d getRemindersByMemberResponse
 	err = xml.Unmarshal([]byte(b.Body()), &d)
 	if err != nil {
 		return []Event{}, err
