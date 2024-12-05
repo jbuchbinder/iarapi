@@ -65,6 +65,7 @@ type IncidentInfoData struct {
 	LongDirection          string `json:"longDirection"`
 }
 
+/*
 type NowResponding struct {
 	MemberFName   string `xml:"memberfname"`
 	MemberCat     string `xml:"membercat"`
@@ -75,6 +76,7 @@ type NowResponding struct {
 	CalledNo      string `xml:"calledno"`
 	UserInput     string `xml:"userinput"`
 }
+*/
 
 type OnSchedule struct {
 	MemberName      string `xml:"membername"`
@@ -82,4 +84,57 @@ type OnSchedule struct {
 	InStationOrHome string `xml:"instationorhome"`
 	MemberStation   string `xml:"memberstation"`
 	UntilAt         string `xml:"untilat"`
+}
+
+type Credentials struct {
+	Agency       int64  `json:"Agency"`
+	Member       int64  `json:"Member"`
+	Type         int    `json:"Type"`
+	Token        string `json:"Token"`
+	AgencyType   string `json:"AgencyType"`
+	SessionToken string `json:"SessionToken"`
+}
+
+type AgenciesList []string
+
+type AgencyNames map[string]AgencyInfo
+
+type AgencyInfo struct {
+	ID          int64  `json:"id" yaml:"id"`
+	Name        string `json:"name" yaml:"name"`
+	Index       int    `json:"index" yaml:"index"`
+	AutoDisplay string `json:"autoDisplay" yaml:"autoDisplay"`
+}
+
+type DispatcherAgencyInformation struct {
+	AgencyId                int64             `json:"AgencyId"`
+	OnDuties                []PersonnelStatus `json:"OnDuties"`
+	NowRespondings          []NowResponding   `json:"NowRespondings"`
+	OutOfServiceApparatuses []map[string]any  `json:"OutOfServiceApparatuses"`
+	InServiceApparatuses    []map[string]any  `json:"InServiceApparatuses"`
+}
+
+type PersonnelStatus struct {
+	Name          string `json:"Name"`
+	ID            int64  `json:"Id"`
+	Position      string `json:"Position"`
+	OnDutyFor     string `json:"OnDutyFor"`
+	StationForm   string `json:"StationForm"`
+	UntilAt       string `json:"UntilAt"`
+	UntilAtString string `json:"UntilAtString"`
+	SubscriberId  int64  `json:"SubscriberId"`
+}
+
+type NowResponding struct {
+	CallingTime       string `json:"CallingTime"`
+	ID                int64  `json:"Id"`
+	Name              string `json:"Name"`
+	Position          string `json:"Position"`
+	RespondingTo      string `json:"RespondingTo"`
+	ETA               string `json:"ETA"`
+	CallerNumber      string `json:"CallerNumber"`
+	CalledNumber      string `json:"CalledNumber"`
+	UserInput         string `json:"UserInput"`
+	CallingTimeString string `json:"CallingTimeString"`
+	ETAString         string `json:"ETAString"`
 }
