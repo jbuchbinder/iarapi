@@ -1,1 +1,2 @@
 secrets.go filter=git-crypt diff=git-crypt
+api_test.go filter=git-crypt diff=git-crypt
